@@ -1304,7 +1304,20 @@
         el.mixerList.addEventListener("input", (event) => {
           const input = event.target.closest("[data-volume-id]");
           if (!input) return;
-          setSoundVolume(input.dataset.volumeId, Number(input.value) / 100);
+          const id = input.dataset.volumeId;
+          if (ctx && ctx.state === "suspended") {
+            ctx.resume().then(() => {
+              runtime.forEach((entry) => {
+                const m = entry.graph && entry.graph.media;
+                if (!m || m.paused) return;
+                const t = m.currentTime;
+                m.pause();
+                m.currentTime = t;
+                void m.play();
+              });
+            });
+          }
+          setSoundVolume(id, Number(input.value) / 100);
         });
 
         el.mixerList.addEventListener("click", (event) => {
@@ -2471,6 +2484,7 @@
           output,
           sources: [source],
           nodes: [output],
+          media,
           objectUrl: url.startsWith("blob:") ? url : "",
           debugSnapshot() {
             return {
