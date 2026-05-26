@@ -1,0 +1,2581 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Focus Sound</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #070b10;
+      --bg-soft: #0b1118;
+      --surface: rgba(16, 25, 34, 0.92);
+      --surface-strong: rgba(21, 34, 44, 0.96);
+      --line: #263746;
+      --line-soft: rgba(132, 163, 179, 0.18);
+      --text: #edf5f7;
+      --muted: #91a5ae;
+      --quiet: #627781;
+      --teal: #3ce0c3;
+      --teal-deep: #128a83;
+      --amber: #ffb44f;
+      --rose: #ff6a7c;
+      --green: #92dd8f;
+      --blue: #73b5ff;
+      --shadow: rgba(0, 0, 0, 0.42);
+      --radius: 8px;
+      --font: "SFMono-Regular", "Cascadia Mono", "Roboto Mono", "Noto Sans Mono CJK JP", Consolas, monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      min-height: 100%;
+      background: var(--bg);
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      color: var(--text);
+      font-family: var(--font);
+      background:
+        linear-gradient(180deg, rgba(8, 14, 20, 0.94), rgba(6, 9, 13, 1)),
+        repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.025) 0 1px, transparent 1px 44px);
+      letter-spacing: 0;
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    button {
+      color: inherit;
+    }
+
+    .app {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 26px 0 34px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--line-soft);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      min-width: 0;
+      gap: 13px;
+    }
+
+    .brand-mark {
+      display: grid;
+      flex: 0 0 auto;
+      width: 44px;
+      height: 44px;
+      place-items: center;
+      border: 1px solid rgba(60, 224, 195, 0.42);
+      border-radius: var(--radius);
+      color: var(--teal);
+      background: linear-gradient(135deg, rgba(60, 224, 195, 0.13), rgba(255, 180, 79, 0.08));
+      box-shadow: 0 12px 38px rgba(60, 224, 195, 0.08);
+      font-size: 0.94rem;
+      font-weight: 800;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: clamp(1.2rem, 2.4vw, 1.65rem);
+      line-height: 1.15;
+      letter-spacing: 0;
+    }
+
+    .brand-subtitle {
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 0.82rem;
+      line-height: 1.4;
+    }
+
+    .master-control {
+      display: grid;
+      grid-template-columns: auto minmax(150px, 240px) 46px;
+      align-items: center;
+      gap: 12px;
+      min-width: min(100%, 310px);
+      padding: 12px;
+      border: 1px solid var(--line-soft);
+      border-radius: var(--radius);
+      background: rgba(13, 20, 28, 0.76);
+    }
+
+    .master-label {
+      color: var(--muted);
+      font-size: 0.78rem;
+      text-transform: uppercase;
+    }
+
+    .percent {
+      color: var(--teal);
+      font-size: 0.78rem;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .range {
+      width: 100%;
+      height: 28px;
+      margin: 0;
+      cursor: pointer;
+      appearance: none;
+      background: transparent;
+      --value: 50%;
+    }
+
+    .range:focus-visible {
+      outline: 2px solid rgba(60, 224, 195, 0.72);
+      outline-offset: 4px;
+      border-radius: 999px;
+    }
+
+    .range::-webkit-slider-runnable-track {
+      height: 6px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--teal) 0 var(--value), rgba(124, 148, 158, 0.24) var(--value) 100%);
+    }
+
+    .range::-moz-range-track {
+      height: 6px;
+      border-radius: 999px;
+      background: rgba(124, 148, 158, 0.24);
+    }
+
+    .range::-moz-range-progress {
+      height: 6px;
+      border-radius: 999px;
+      background: var(--teal);
+    }
+
+    .range::-webkit-slider-thumb {
+      width: 18px;
+      height: 18px;
+      margin-top: -6px;
+      appearance: none;
+      border: 2px solid #0a1016;
+      border-radius: 50%;
+      background: var(--amber);
+      box-shadow: 0 0 0 4px rgba(255, 180, 79, 0.16);
+    }
+
+    .range::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      border: 2px solid #0a1016;
+      border-radius: 50%;
+      background: var(--amber);
+      box-shadow: 0 0 0 4px rgba(255, 180, 79, 0.16);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(300px, 390px);
+      gap: 20px;
+      padding-top: 20px;
+    }
+
+    .left-stack,
+    .right-stack {
+      display: grid;
+      align-content: start;
+      gap: 20px;
+    }
+
+    .stage {
+      position: relative;
+      min-height: 270px;
+      overflow: hidden;
+      border: 1px solid var(--line-soft);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(180deg, rgba(10, 18, 24, 0.9), rgba(10, 15, 20, 0.82)),
+        repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.026) 0 1px, transparent 1px 38px);
+      box-shadow: 0 22px 60px var(--shadow);
+    }
+
+    #visualizer {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .stage-overlay {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      min-height: 270px;
+      align-content: space-between;
+      padding: 18px;
+      pointer-events: none;
+    }
+
+    .status-strip {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      pointer-events: auto;
+    }
+
+    .status-line {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 9px;
+      min-width: 0;
+    }
+
+    .status-chip {
+      display: inline-flex;
+      align-items: center;
+      min-height: 30px;
+      padding: 6px 9px;
+      border: 1px solid rgba(60, 224, 195, 0.28);
+      border-radius: var(--radius);
+      color: var(--teal);
+      background: rgba(5, 10, 14, 0.52);
+      font-size: 0.76rem;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .status-text {
+      color: var(--muted);
+      font-size: 0.78rem;
+    }
+
+    .primary-button,
+    .ghost-button,
+    .timer-button,
+    .preset-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 40px;
+      border: 1px solid var(--line-soft);
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: border-color 160ms ease, transform 160ms ease, background 160ms ease, color 160ms ease;
+    }
+
+    .primary-button {
+      min-width: 116px;
+      padding: 0 15px;
+      border-color: rgba(255, 180, 79, 0.46);
+      color: #120d06;
+      background: var(--amber);
+      font-weight: 800;
+    }
+
+    .primary-button:hover,
+    .ghost-button:hover,
+    .timer-button:hover,
+    .preset-button:hover {
+      transform: translateY(-1px);
+    }
+
+    .primary-button:focus-visible,
+    .ghost-button:focus-visible,
+    .timer-button:focus-visible,
+    .preset-button:focus-visible,
+    .sound-card:focus-visible {
+      outline: 2px solid rgba(60, 224, 195, 0.74);
+      outline-offset: 3px;
+    }
+
+    .pulse-line {
+      display: grid;
+      gap: 8px;
+      align-self: end;
+      max-width: 560px;
+    }
+
+    .pulse-title {
+      font-size: clamp(1.35rem, 3.5vw, 2.45rem);
+      line-height: 1.04;
+      letter-spacing: 0;
+      text-wrap: balance;
+    }
+
+    .pulse-meta {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 0.84rem;
+    }
+
+    .meter-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--quiet);
+      box-shadow: 0 0 0 rgba(60, 224, 195, 0);
+    }
+
+    .meter-dot.is-live {
+      background: var(--teal);
+      animation: breathe 1.7s ease-in-out infinite;
+    }
+
+    @keyframes breathe {
+      0%,
+      100% {
+        box-shadow: 0 0 0 0 rgba(60, 224, 195, 0.24);
+        transform: scale(1);
+      }
+      50% {
+        box-shadow: 0 0 0 9px rgba(60, 224, 195, 0);
+        transform: scale(1.18);
+      }
+    }
+
+    .section {
+      border: 1px solid var(--line-soft);
+      border-radius: var(--radius);
+      background: var(--surface);
+      box-shadow: 0 18px 44px rgba(0, 0, 0, 0.22);
+    }
+
+    .section-header {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 16px 16px 0;
+    }
+
+    .section-title {
+      font-size: 0.86rem;
+      color: var(--text);
+      text-transform: uppercase;
+    }
+
+    .section-kicker {
+      color: var(--quiet);
+      font-size: 0.72rem;
+      text-transform: uppercase;
+    }
+
+    .sound-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      padding: 16px;
+    }
+
+    .sound-card {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      align-items: center;
+      gap: 12px;
+      min-height: 94px;
+      padding: 13px;
+      border: 1px solid rgba(132, 163, 179, 0.2);
+      border-radius: var(--radius);
+      color: var(--text);
+      background: rgba(11, 18, 25, 0.74);
+      cursor: pointer;
+      text-align: left;
+      transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+    }
+
+    .sound-card:hover {
+      transform: translateY(-2px);
+      border-color: rgba(60, 224, 195, 0.34);
+      background: rgba(16, 27, 36, 0.86);
+    }
+
+    .sound-card.is-active {
+      border-color: rgba(60, 224, 195, 0.62);
+      background: linear-gradient(135deg, rgba(24, 48, 52, 0.94), rgba(26, 34, 39, 0.94));
+      box-shadow: 0 0 0 1px rgba(60, 224, 195, 0.18), 0 18px 48px rgba(60, 224, 195, 0.09);
+    }
+
+    .sound-card.is-active .sound-icon {
+      border-color: rgba(255, 180, 79, 0.42);
+      background: rgba(255, 180, 79, 0.12);
+    }
+
+    .sound-icon {
+      display: grid;
+      width: 42px;
+      height: 42px;
+      place-items: center;
+      border: 1px solid rgba(132, 163, 179, 0.2);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.03);
+      font-size: 1.2rem;
+    }
+
+    .sound-copy {
+      display: grid;
+      min-width: 0;
+      gap: 7px;
+    }
+
+    .sound-label {
+      overflow-wrap: anywhere;
+      font-size: 0.93rem;
+      line-height: 1.25;
+      font-weight: 800;
+    }
+
+    .sound-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .mixer-list {
+      display: grid;
+      gap: 0;
+      padding: 10px 16px 16px;
+    }
+
+    .empty-state {
+      display: grid;
+      min-height: 132px;
+      place-items: center;
+      border: 1px dashed rgba(132, 163, 179, 0.22);
+      border-radius: var(--radius);
+      color: var(--quiet);
+      font-size: 0.88rem;
+    }
+
+    .mix-row {
+      display: grid;
+      grid-template-columns: minmax(110px, 150px) minmax(130px, 1fr) 46px 34px;
+      align-items: center;
+      gap: 11px;
+      padding: 12px 0;
+      border-bottom: 1px solid rgba(132, 163, 179, 0.14);
+    }
+
+    .mix-row:last-child {
+      border-bottom: 0;
+    }
+
+    .mix-name {
+      display: flex;
+      align-items: center;
+      min-width: 0;
+      gap: 9px;
+      font-size: 0.84rem;
+      font-weight: 800;
+    }
+
+    .mix-name span:last-child {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .icon-button {
+      display: grid;
+      width: 34px;
+      height: 34px;
+      place-items: center;
+      border: 1px solid rgba(132, 163, 179, 0.22);
+      border-radius: var(--radius);
+      color: var(--muted);
+      background: rgba(8, 13, 18, 0.68);
+      cursor: pointer;
+      transition: border-color 160ms ease, color 160ms ease, background 160ms ease;
+    }
+
+    .icon-button:hover {
+      border-color: rgba(255, 106, 124, 0.42);
+      color: var(--rose);
+      background: rgba(255, 106, 124, 0.08);
+    }
+
+    .icon-button:focus-visible {
+      outline: 2px solid rgba(255, 180, 79, 0.7);
+      outline-offset: 3px;
+    }
+
+    .timer-face {
+      display: grid;
+      gap: 12px;
+      padding: 16px;
+    }
+
+    .time-display {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      min-height: 76px;
+      padding: 14px;
+      border: 1px solid rgba(255, 180, 79, 0.22);
+      border-radius: var(--radius);
+      background: linear-gradient(135deg, rgba(255, 180, 79, 0.1), rgba(60, 224, 195, 0.07));
+    }
+
+    .time-value {
+      color: var(--amber);
+      font-size: clamp(1.9rem, 5vw, 2.6rem);
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+      font-weight: 900;
+    }
+
+    .timer-state {
+      color: var(--muted);
+      font-size: 0.72rem;
+      text-transform: uppercase;
+    }
+
+    .timer-controls {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .timer-button,
+    .ghost-button,
+    .preset-button {
+      padding: 0 12px;
+      color: var(--text);
+      background: rgba(8, 13, 18, 0.68);
+    }
+
+    .timer-button.is-primary {
+      border-color: rgba(60, 224, 195, 0.42);
+      color: var(--teal);
+      background: rgba(60, 224, 195, 0.1);
+      font-weight: 800;
+    }
+
+    .duration-grid,
+    .preset-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .duration-button {
+      min-height: 36px;
+      border: 1px solid rgba(132, 163, 179, 0.2);
+      border-radius: var(--radius);
+      color: var(--muted);
+      background: rgba(8, 13, 18, 0.58);
+      cursor: pointer;
+    }
+
+    .duration-button.is-active {
+      border-color: rgba(255, 180, 79, 0.46);
+      color: var(--amber);
+      background: rgba(255, 180, 79, 0.08);
+    }
+
+    .custom-time {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .number-input {
+      width: 100%;
+      min-height: 38px;
+      padding: 0 10px;
+      border: 1px solid rgba(132, 163, 179, 0.2);
+      border-radius: var(--radius);
+      color: var(--text);
+      background: rgba(5, 9, 13, 0.64);
+    }
+
+    .number-input:focus-visible {
+      outline: 2px solid rgba(60, 224, 195, 0.72);
+      outline-offset: 2px;
+    }
+
+    .custom-time span {
+      color: var(--muted);
+      font-size: 0.78rem;
+    }
+
+    .preset-section {
+      padding: 16px;
+    }
+
+    .preset-grid {
+      margin-top: 12px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .preset-button {
+      min-height: 44px;
+      justify-content: flex-start;
+      color: var(--muted);
+    }
+
+    .preset-button strong {
+      color: var(--text);
+      font-size: 0.82rem;
+    }
+
+    .preset-button.is-active {
+      border-color: rgba(60, 224, 195, 0.42);
+      background: rgba(60, 224, 195, 0.09);
+    }
+
+    .save-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 10px;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(132, 163, 179, 0.13);
+    }
+
+    .save-row .status-text {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .external-section {
+      display: grid;
+      gap: 12px;
+      padding: 16px;
+    }
+
+    .template-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .template-button,
+    .file-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 8px;
+      min-height: 38px;
+      padding: 0 11px;
+      border: 1px solid rgba(132, 163, 179, 0.2);
+      border-radius: var(--radius);
+      color: var(--muted);
+      background: rgba(8, 13, 18, 0.58);
+      cursor: pointer;
+    }
+
+    .template-button.is-active {
+      border-color: rgba(60, 224, 195, 0.42);
+      color: var(--teal);
+      background: rgba(60, 224, 195, 0.09);
+    }
+
+    .field-stack {
+      display: grid;
+      gap: 9px;
+    }
+
+    .text-input {
+      width: 100%;
+      min-height: 38px;
+      padding: 0 10px;
+      border: 1px solid rgba(132, 163, 179, 0.2);
+      border-radius: var(--radius);
+      color: var(--text);
+      background: rgba(5, 9, 13, 0.64);
+    }
+
+    .text-input:focus-visible {
+      outline: 2px solid rgba(60, 224, 195, 0.72);
+      outline-offset: 2px;
+    }
+
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      color: var(--muted);
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+
+    .toggle-row input {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--teal);
+    }
+
+    .external-actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .file-button,
+    .external-actions .ghost-button {
+      justify-content: center;
+      width: 100%;
+    }
+
+    .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    @media (max-width: 940px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .right-stack {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 760px) {
+      .app {
+        width: min(100% - 24px, 680px);
+        padding-top: 16px;
+      }
+
+      .topbar,
+      .status-strip {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .master-control {
+        grid-template-columns: auto minmax(0, 1fr) 46px;
+        width: 100%;
+      }
+
+      .sound-grid,
+      .right-stack {
+        grid-template-columns: 1fr;
+      }
+
+      .mix-row {
+        grid-template-columns: minmax(0, 1fr) 46px 34px;
+      }
+
+      .mix-row .range {
+        grid-column: 1 / -1;
+        grid-row: 2;
+      }
+
+      .pulse-title {
+        max-width: 12ch;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .stage-overlay {
+        padding: 14px;
+      }
+
+      .sound-card {
+        min-height: 84px;
+      }
+
+      .duration-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .preset-grid,
+      .template-grid,
+      .timer-controls,
+      .external-actions,
+      .save-row {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: 0.001ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">FS</div>
+        <div>
+          <h1>Focus Sound</h1>
+          <p class="brand-subtitle">アンビエント集中ミキサー</p>
+        </div>
+      </div>
+
+      <label class="master-control" for="masterVolume">
+        <span class="master-label">Master</span>
+        <input class="range" id="masterVolume" type="range" min="0" max="100" value="65" aria-label="マスターボリューム">
+        <span class="percent" id="masterPercent">65%</span>
+      </label>
+    </header>
+
+    <main class="layout">
+      <div class="left-stack">
+        <section class="stage" aria-label="ビジュアライザー">
+          <canvas id="visualizer"></canvas>
+          <div class="stage-overlay">
+            <div class="status-strip">
+              <div class="status-line">
+                <span class="status-chip" id="activeCount">0 layer</span>
+                <span class="status-text" id="statusText">Ready</span>
+              </div>
+              <button class="primary-button" type="button" id="playAllButton" data-testid="play-all">
+                <span id="playAllIcon" aria-hidden="true">▶</span>
+                <span id="playAllLabel">再生</span>
+              </button>
+            </div>
+            <div class="pulse-line">
+              <h2 class="pulse-title">Deep work, low noise.</h2>
+              <div class="pulse-meta">
+                <span class="meter-dot" id="meterDot" aria-hidden="true"></span>
+                <span id="nowPlaying">未再生</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="section" aria-labelledby="soundsTitle">
+          <div class="section-header">
+            <div>
+              <p class="section-kicker">Sound catalog</p>
+              <h2 class="section-title" id="soundsTitle">サウンド</h2>
+            </div>
+          </div>
+          <div class="sound-grid" id="soundGrid"></div>
+        </section>
+
+        <section class="section" aria-labelledby="mixerTitle">
+          <div class="section-header">
+            <div>
+              <p class="section-kicker">Active layers</p>
+              <h2 class="section-title" id="mixerTitle">ミックス</h2>
+            </div>
+          </div>
+          <div class="mixer-list" id="mixerList"></div>
+        </section>
+      </div>
+
+      <aside class="right-stack">
+        <section class="section" aria-labelledby="timerTitle">
+          <div class="section-header">
+            <div>
+              <p class="section-kicker">Focus timer</p>
+              <h2 class="section-title" id="timerTitle">タイマー</h2>
+            </div>
+          </div>
+          <div class="timer-face">
+            <div class="time-display">
+              <div>
+                <div class="time-value" id="timeValue">25:00</div>
+                <div class="timer-state" id="timerState">待機中</div>
+              </div>
+              <span aria-hidden="true">⏱</span>
+            </div>
+
+            <div class="timer-controls">
+              <button class="timer-button is-primary" type="button" id="timerToggle">開始</button>
+              <button class="timer-button" type="button" id="timerReset">リセット</button>
+            </div>
+
+            <div class="duration-grid" id="durationGrid" aria-label="タイマー時間">
+              <button class="duration-button is-active" type="button" data-minutes="25">25</button>
+              <button class="duration-button" type="button" data-minutes="5">5</button>
+              <button class="duration-button" type="button" data-minutes="45">45</button>
+            </div>
+
+            <label class="custom-time" for="customMinutes">
+              <input class="number-input" id="customMinutes" type="number" min="1" max="180" value="25" inputmode="numeric">
+              <span>min</span>
+            </label>
+          </div>
+        </section>
+
+        <section class="section" aria-labelledby="presetTitle">
+          <div class="section-header">
+            <div>
+              <p class="section-kicker">Mix presets</p>
+              <h2 class="section-title" id="presetTitle">プリセット</h2>
+            </div>
+          </div>
+          <div class="preset-section">
+            <div class="preset-grid" id="presetGrid"></div>
+            <div class="save-row">
+              <span class="status-text" id="saveStatus">未保存</span>
+              <button class="ghost-button" type="button" id="savePreset">保存</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="section" aria-labelledby="externalTitle">
+          <div class="section-header">
+            <div>
+              <p class="section-kicker">External audio</p>
+              <h2 class="section-title" id="externalTitle">外部音源</h2>
+            </div>
+          </div>
+          <div class="external-section">
+            <div class="template-grid" id="externalTemplates" aria-label="外部音源タイプ"></div>
+            <div class="field-stack">
+              <label class="visually-hidden" for="externalName">名前</label>
+              <input class="text-input" id="externalName" type="text" value="Jazz" maxlength="18" autocomplete="off">
+              <label class="visually-hidden" for="externalUrl">URL</label>
+              <input class="text-input" id="externalUrl" type="url" placeholder="https://...">
+              <label class="toggle-row" for="externalLoop">
+                <input id="externalLoop" type="checkbox">
+                <span>Loop</span>
+              </label>
+              <div class="external-actions">
+                <label class="file-button" for="externalFile">
+                  <input class="visually-hidden" id="externalFile" type="file" accept="audio/*">
+                  <span>File</span>
+                </label>
+                <button class="ghost-button" type="button" id="addExternalUrl">URL / Radio</button>
+              </div>
+              <span class="status-text" id="externalStatus">未追加</span>
+            </div>
+          </div>
+        </section>
+      </aside>
+    </main>
+  </div>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const STORAGE_KEY = "focus-sound-state-v8";
+      const FADE_SECONDS = 0.9;
+      const RADIO_BROWSER_SEARCH = "https://de1.api.radio-browser.info/json/stations/search";
+
+      const EXTERNAL_TEMPLATES = {
+        cafe: {
+          label: "Bossa Cafe",
+          icon: "喫",
+          tone: "Bossa",
+          loop: false,
+          buttonLabel: "Bossa Cafe",
+          outputLabel: "Bossa Cafe",
+          radioQueries: [
+            { name: "bossa nova" },
+            { tag: "bossa nova" },
+            { name: "bossanova" },
+            { tag: "bossanova" }
+          ]
+        },
+        birds: {
+          label: "鳥の声",
+          icon: "鳥",
+          tone: "Loop",
+          loop: true,
+          radioQueries: [
+            { name: "bird" },
+            { name: "nature" },
+            { tag: "nature" }
+          ]
+        },
+        crowd: {
+          label: "人混み",
+          icon: "群",
+          tone: "Ambience",
+          loop: true,
+          buttonLabel: "人混み Ambience",
+          fixedUrl: "https://upload.wikimedia.org/wikipedia/commons/b/b5/Restaurant_ambience.ogg",
+          fixedLabel: "人混み",
+          fixedTone: "Ambience",
+          radioQueries: [
+            { name: "talk" },
+            { tag: "talk" },
+            { tag: "news" }
+          ]
+        },
+        jazz: {
+          label: "Jazz",
+          icon: "JZ",
+          tone: "Radio",
+          loop: false,
+          radioQueries: [
+            { name: "jazz", tag: "jazz" },
+            { tag: "jazz" }
+          ]
+        }
+      };
+
+      const SOUNDS = [
+        {
+          id: "rain",
+          label: "雨",
+          icon: "雨",
+          category: "nature",
+          tone: "Hiss",
+          defaultVolume: 0.48,
+          create: createRainNoise
+        },
+        {
+          id: "wind",
+          label: "風",
+          icon: "風",
+          category: "nature",
+          tone: "Low",
+          defaultVolume: 0.34,
+          create: createWindNoise
+        },
+        {
+          id: "waves",
+          label: "波",
+          icon: "波",
+          category: "nature",
+          tone: "Pulse",
+          defaultVolume: 0.42,
+          create: createWaveNoise
+        },
+        {
+          id: "fire",
+          label: "焚き火",
+          icon: "火",
+          category: "nature",
+          tone: "Crackle",
+          defaultVolume: 0.38,
+          create: createFireNoise
+        },
+        {
+          id: "white",
+          label: "ホワイト",
+          icon: "W",
+          category: "noise",
+          tone: "Bright",
+          defaultVolume: 0.3,
+          create: (ctx) => singleSourceGraph(createWhiteNoise(ctx))
+        },
+        {
+          id: "pink",
+          label: "ピンク",
+          icon: "P",
+          category: "noise",
+          tone: "Balanced",
+          defaultVolume: 0.36,
+          create: (ctx) => singleSourceGraph(createPinkNoise(ctx))
+        },
+        {
+          id: "brown",
+          label: "ブラウン",
+          icon: "B",
+          category: "noise",
+          tone: "Deep",
+          defaultVolume: 0.32,
+          create: (ctx) => singleSourceGraph(createBrownNoise(ctx))
+        }
+      ];
+
+      const PRESETS = {
+        deep: {
+          label: "深集中",
+          icon: "◆",
+          mix: { pink: 0.42, rain: 0.44, wind: 0.18 }
+        },
+        night: {
+          label: "夜作業",
+          icon: "◐",
+          mix: { brown: 0.38, waves: 0.34, wind: 0.2 }
+        },
+        desk: {
+          label: "雨デスク",
+          icon: "▦",
+          mix: { white: 0.24, rain: 0.54 }
+        },
+        warm: {
+          label: "焚き火",
+          icon: "△",
+          mix: { fire: 0.48, brown: 0.22 }
+        }
+      };
+
+      const soundById = new Map(SOUNDS.map((sound) => [sound.id, sound]));
+      const runtime = new Map();
+
+      let ctx = null;
+      let masterGain = null;
+      let analyser = null;
+      let frequencyData = null;
+      let canvasContext = null;
+      let rafId = 0;
+      let activePreset = null;
+      let selectedExternalTemplate = "jazz";
+
+      const state = loadState();
+      restoreExternalSounds();
+      const timer = {
+        duration: state.timerMinutes * 60,
+        remaining: state.timerMinutes * 60,
+        running: false,
+        endAt: 0,
+        intervalId: 0
+      };
+
+      const el = {
+        activeCount: document.getElementById("activeCount"),
+        addExternalUrl: document.getElementById("addExternalUrl"),
+        customMinutes: document.getElementById("customMinutes"),
+        durationGrid: document.getElementById("durationGrid"),
+        externalFile: document.getElementById("externalFile"),
+        externalLoop: document.getElementById("externalLoop"),
+        externalName: document.getElementById("externalName"),
+        externalStatus: document.getElementById("externalStatus"),
+        externalTemplates: document.getElementById("externalTemplates"),
+        externalUrl: document.getElementById("externalUrl"),
+        masterPercent: document.getElementById("masterPercent"),
+        masterVolume: document.getElementById("masterVolume"),
+        meterDot: document.getElementById("meterDot"),
+        mixerList: document.getElementById("mixerList"),
+        nowPlaying: document.getElementById("nowPlaying"),
+        playAllButton: document.getElementById("playAllButton"),
+        playAllIcon: document.getElementById("playAllIcon"),
+        playAllLabel: document.getElementById("playAllLabel"),
+        presetGrid: document.getElementById("presetGrid"),
+        savePreset: document.getElementById("savePreset"),
+        saveStatus: document.getElementById("saveStatus"),
+        soundGrid: document.getElementById("soundGrid"),
+        statusText: document.getElementById("statusText"),
+        timerReset: document.getElementById("timerReset"),
+        timerState: document.getElementById("timerState"),
+        timerToggle: document.getElementById("timerToggle"),
+        timeValue: document.getElementById("timeValue"),
+        visualizer: document.getElementById("visualizer")
+      };
+
+      init();
+
+      function init() {
+        canvasContext = el.visualizer.getContext("2d");
+        renderExternalTemplates();
+        renderSoundGrid();
+        renderMixer();
+        renderPresetGrid();
+        syncMasterUi();
+        syncTimerUi();
+        bindEvents();
+        resizeVisualizer();
+        drawVisualizer();
+      }
+
+      function bindEvents() {
+        window.addEventListener("resize", resizeVisualizer);
+
+        document.addEventListener("pointerdown", () => {
+          if (ctx && ctx.state === "suspended") {
+            void ctx.resume();
+          }
+        }, { passive: true });
+
+        document.addEventListener("keydown", (event) => {
+          const target = event.target;
+          const tag = target && target.tagName ? target.tagName.toLowerCase() : "";
+          if (event.code === "Space" && tag !== "input" && tag !== "textarea" && tag !== "button") {
+            event.preventDefault();
+            void toggleGlobalPlayback();
+          }
+        });
+
+        el.soundGrid.addEventListener("click", (event) => {
+          const card = event.target.closest("[data-sound-id]");
+          if (!card) return;
+          void toggleSound(card.dataset.soundId);
+        });
+
+        el.mixerList.addEventListener("input", (event) => {
+          const input = event.target.closest("[data-volume-id]");
+          if (!input) return;
+          setSoundVolume(input.dataset.volumeId, Number(input.value) / 100);
+        });
+
+        el.mixerList.addEventListener("click", (event) => {
+          const button = event.target.closest("[data-stop-id]");
+          if (!button) return;
+          stopSound(button.dataset.stopId, { remember: true });
+        });
+
+        el.masterVolume.addEventListener("input", () => {
+          state.masterVolume = Number(el.masterVolume.value) / 100;
+          syncMasterUi();
+          persistState();
+        });
+
+        el.playAllButton.addEventListener("click", () => {
+          void toggleGlobalPlayback();
+        });
+
+        el.presetGrid.addEventListener("click", (event) => {
+          const button = event.target.closest("[data-preset-id]");
+          if (!button) return;
+          void applyPreset(button.dataset.presetId);
+        });
+
+        el.savePreset.addEventListener("click", saveCustomPreset);
+
+        el.timerToggle.addEventListener("click", toggleTimer);
+        el.timerReset.addEventListener("click", resetTimer);
+
+        el.durationGrid.addEventListener("click", (event) => {
+          const button = event.target.closest("[data-minutes]");
+          if (!button) return;
+          setTimerMinutes(Number(button.dataset.minutes));
+        });
+
+        el.customMinutes.addEventListener("change", () => {
+          const minutes = clamp(Number(el.customMinutes.value) || state.timerMinutes, 1, 180);
+          setTimerMinutes(minutes);
+        });
+
+        el.externalTemplates.addEventListener("click", (event) => {
+          const button = event.target.closest("[data-external-template]");
+          if (!button) return;
+          void addExternalRadioTemplate(button.dataset.externalTemplate);
+        });
+
+        el.addExternalUrl.addEventListener("click", () => {
+          void addExternalUrlSound();
+        });
+
+        el.externalFile.addEventListener("change", () => {
+          addExternalFileSound();
+        });
+      }
+
+      function loadState() {
+        const defaults = {
+          masterVolume: 0.65,
+          timerMinutes: 25,
+          lastMix: ["rain", "pink"],
+          volumes: Object.fromEntries(SOUNDS.map((sound) => [sound.id, sound.defaultVolume])),
+          customPreset: null,
+          externalSounds: []
+        };
+
+        try {
+          const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+          if (!stored || typeof stored !== "object") return defaults;
+          return {
+            ...defaults,
+            ...stored,
+            volumes: {
+              ...defaults.volumes,
+              ...(stored.volumes || {})
+            },
+            lastMix: Array.isArray(stored.lastMix) && stored.lastMix.length ? stored.lastMix : defaults.lastMix,
+            externalSounds: Array.isArray(stored.externalSounds) ? stored.externalSounds : []
+          };
+        } catch {
+          return defaults;
+        }
+      }
+
+      function restoreExternalSounds() {
+        state.externalSounds = state.externalSounds
+          .filter((sound) => sound && sound.sourceType === "url" && typeof sound.url === "string" && sound.url.trim())
+          .map((sound) => ({
+            id: sound.id || `ext-url-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
+            label: sound.label || "外部音源",
+            icon: sound.icon || "音",
+            tone: sound.tone || (sound.loop ? "URL loop" : "Radio"),
+            templateKey: sound.templateKey || inferExternalTemplateKey(sound),
+            sourceType: "url",
+            url: sound.url,
+            loop: Boolean(sound.loop),
+            defaultVolume: clamp(Number(sound.defaultVolume) || 0.45, 0, 1)
+          }));
+
+        state.externalSounds.forEach(registerExternalSound);
+      }
+
+      function persistState() {
+        const payload = {
+          masterVolume: state.masterVolume,
+          timerMinutes: state.timerMinutes,
+          lastMix: state.lastMix,
+          volumes: state.volumes,
+          customPreset: state.customPreset,
+          externalSounds: state.externalSounds
+        };
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+        } catch {
+          setStatus("保存できません");
+        }
+      }
+
+      function selectExternalTemplate(key) {
+        if (!EXTERNAL_TEMPLATES[key]) return;
+        selectedExternalTemplate = key;
+        const template = EXTERNAL_TEMPLATES[key];
+        el.externalName.value = template.label;
+        el.externalLoop.checked = template.loop;
+        renderExternalTemplates();
+      }
+
+      async function addExternalRadioTemplate(key) {
+        selectExternalTemplate(key);
+        await addRadioSound(key);
+      }
+
+      async function addRadioSound(key) {
+        const template = EXTERNAL_TEMPLATES[key] || EXTERNAL_TEMPLATES.jazz;
+        if (template.fixedUrl) {
+          await addFixedExternalSound(key, template);
+          return;
+        }
+
+        const station = await findRadioStation(key);
+        if (!station) {
+          setExternalStatus("候補なし");
+          return;
+        }
+
+        const duplicate = state.externalSounds.find((item) => item.url === station.url);
+        if (duplicate && soundById.has(duplicate.id)) {
+          setExternalStatus(`${duplicate.label} 再生`);
+          await startSound(duplicate.id);
+          return;
+        }
+
+        const sound = buildExternalSound({
+          sourceType: "url",
+          url: station.url,
+          label: template.outputLabel || `${template.label} Radio`,
+          loop: false,
+          tone: template.tone || "Live",
+          templateKey: key,
+          persist: true
+        });
+
+        registerExternalSound(sound);
+        state.externalSounds.push(toStoredExternalSound(sound));
+        state.volumes[sound.id] = sound.defaultVolume;
+        state.lastMix = [sound.id];
+        persistState();
+        renderSoundGrid();
+        renderMixer();
+        setExternalStatus(`${sound.label} 追加`);
+        await startSound(sound.id);
+      }
+
+      async function addFixedExternalSound(key, template) {
+        const duplicate = state.externalSounds.find((item) => item.url === template.fixedUrl);
+        if (duplicate && soundById.has(duplicate.id)) {
+          setExternalStatus(`${duplicate.label} 再生`);
+          await startSound(duplicate.id);
+          return;
+        }
+
+        const sound = buildExternalSound({
+          sourceType: "url",
+          url: template.fixedUrl,
+          label: template.fixedLabel || template.label,
+          loop: true,
+          tone: template.fixedTone || "Ambience",
+          templateKey: key,
+          persist: true
+        });
+
+        registerExternalSound(sound);
+        state.externalSounds.push(toStoredExternalSound(sound));
+        state.volumes[sound.id] = sound.defaultVolume;
+        state.lastMix = [sound.id];
+        persistState();
+        renderSoundGrid();
+        renderMixer();
+        setExternalStatus(`${sound.label} 追加`);
+        await startSound(sound.id);
+      }
+
+      async function addExternalUrlSound() {
+        let url = el.externalUrl.value.trim();
+        let label = el.externalName.value.trim();
+        let loop = el.externalLoop.checked;
+
+        if (!url) {
+          await addRadioSound(selectedExternalTemplate);
+          return;
+        }
+
+        try {
+          new URL(url);
+        } catch {
+          setExternalStatus("URLエラー");
+          return;
+        }
+
+        const duplicate = state.externalSounds.find((item) => item.url === url);
+        if (duplicate && soundById.has(duplicate.id)) {
+          setExternalStatus(`${duplicate.label} 再生`);
+          await startSound(duplicate.id);
+          return;
+        }
+
+        const sound = buildExternalSound({
+          sourceType: "url",
+          url,
+          label,
+          loop,
+          tone: loop ? "URL loop" : "Live",
+          templateKey: selectedExternalTemplate,
+          persist: true
+        });
+
+        registerExternalSound(sound);
+        state.externalSounds.push(toStoredExternalSound(sound));
+        state.volumes[sound.id] = sound.defaultVolume;
+        state.lastMix = [sound.id];
+        persistState();
+        renderSoundGrid();
+        renderMixer();
+        setExternalStatus(`${sound.label} 追加`);
+        el.externalUrl.value = "";
+        await startSound(sound.id);
+      }
+
+      function addExternalFileSound() {
+        const file = el.externalFile.files && el.externalFile.files[0];
+        if (!file) return;
+
+        const objectUrl = URL.createObjectURL(file);
+        const sound = buildExternalSound({
+          sourceType: "file",
+          url: objectUrl,
+          label: el.externalName.value.trim() || file.name.replace(/\.[^.]+$/, ""),
+          loop: el.externalLoop.checked,
+          templateKey: selectedExternalTemplate,
+          persist: false
+        });
+
+        sound.objectUrl = objectUrl;
+        registerExternalSound(sound);
+        state.volumes[sound.id] = sound.defaultVolume;
+        state.lastMix = [sound.id];
+        renderSoundGrid();
+        renderMixer();
+        setExternalStatus(`${sound.label} 追加`);
+        el.externalFile.value = "";
+      }
+
+      async function findRadioStation(templateKey) {
+        const template = EXTERNAL_TEMPLATES[templateKey] || EXTERNAL_TEMPLATES.jazz;
+        setExternalStatus("検索中");
+
+        try {
+          const queries = template.radioQueries && template.radioQueries.length
+            ? template.radioQueries
+            : [{ tag: "jazz" }];
+          const stations = [];
+          for (const query of queries) {
+            stations.push(...await searchRadioStations(query));
+          }
+          const seen = new Set();
+          const station = stations.find((item) => {
+            const url = item.url_resolved || item.url;
+            const codec = String(item.codec || "").toLowerCase();
+            const key = `${item.stationuuid || ""}:${url}`;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return item.lastcheckok === 1
+              && /^https?:\/\//.test(url)
+              && !item.hls
+              && ["mp3", "aac", "ogg"].some((name) => codec.includes(name) || url.toLowerCase().includes(name));
+          });
+
+          if (!station) return null;
+          return {
+            name: station.name,
+            url: station.url_resolved || station.url
+          };
+        } catch {
+          return null;
+        }
+      }
+
+      async function searchRadioStations(query) {
+        const params = new URLSearchParams({
+          hidebroken: "true",
+          order: "votes",
+          reverse: "true",
+          limit: "24"
+        });
+
+        if (query.name) {
+          params.set("name", query.name);
+        }
+        if (query.tag) {
+          params.set("tag", query.tag);
+        }
+
+        const response = await fetch(`${RADIO_BROWSER_SEARCH}?${params.toString()}`, {
+          headers: { Accept: "application/json" }
+        });
+        if (!response.ok) throw new Error("radio search failed");
+        return response.json();
+      }
+
+      function buildExternalSound(options) {
+        const template = EXTERNAL_TEMPLATES[selectedExternalTemplate] || EXTERNAL_TEMPLATES.jazz;
+        const id = options.id || `ext-${options.sourceType}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+        const label = (options.label || template.label).slice(0, 18);
+        return {
+          id,
+          label,
+          icon: template.icon,
+          category: "external",
+          tone: options.tone || (options.sourceType === "url" ? (options.loop ? "URL loop" : template.tone || "Radio") : "File"),
+          defaultVolume: 0.45,
+          isExternal: true,
+          templateKey: options.templateKey || selectedExternalTemplate,
+          sourceType: options.sourceType,
+          url: options.url,
+          loop: Boolean(options.loop),
+          create: () => createExternalMediaGraph(options.url, Boolean(options.loop))
+        };
+      }
+
+      function registerExternalSound(sound) {
+        if (!sound || !sound.url) return;
+        const existing = soundById.get(sound.id);
+        if (existing) return;
+        const hydrated = {
+          ...sound,
+          create: () => createExternalMediaGraph(sound.url, Boolean(sound.loop))
+        };
+        SOUNDS.push(hydrated);
+        soundById.set(hydrated.id, hydrated);
+        if (state.volumes[hydrated.id] === undefined) {
+          state.volumes[hydrated.id] = hydrated.defaultVolume;
+        }
+      }
+
+      function toStoredExternalSound(sound) {
+        return {
+          id: sound.id,
+          label: sound.label,
+          icon: sound.icon,
+          tone: sound.tone,
+          templateKey: sound.templateKey || inferExternalTemplateKey(sound),
+          sourceType: "url",
+          url: sound.url,
+          loop: sound.loop,
+          defaultVolume: sound.defaultVolume
+        };
+      }
+
+      function inferExternalTemplateKey(sound) {
+        const label = `${sound.label || ""} ${sound.tone || ""}`.toLowerCase();
+        const url = String(sound.url || "");
+        if (url === EXTERNAL_TEMPLATES.crowd.fixedUrl || label.includes("人混み") || label.includes("crowd")) {
+          return "crowd";
+        }
+        if (label.includes("bossa") || label.includes("cafe") || label.includes("カフェ")) {
+          return "cafe";
+        }
+        if (label.includes("鳥") || label.includes("bird") || label.includes("nature")) {
+          return "birds";
+        }
+        if (label.includes("jazz")) {
+          return "jazz";
+        }
+        return selectedExternalTemplate;
+      }
+
+      async function ensureAudio() {
+        if (!ctx) {
+          const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
+          ctx = new AudioContextCtor();
+          masterGain = ctx.createGain();
+          analyser = ctx.createAnalyser();
+          analyser.fftSize = 512;
+          analyser.smoothingTimeConstant = 0.86;
+          frequencyData = new Uint8Array(analyser.frequencyBinCount);
+          masterGain.connect(analyser);
+          analyser.connect(ctx.destination);
+          applyMasterGain(true);
+        }
+
+        if (ctx.state === "suspended") {
+          await ctx.resume();
+        }
+        return ctx;
+      }
+
+      function applyMasterGain(immediate = false) {
+        if (!masterGain || !ctx) return;
+        const now = ctx.currentTime;
+        const value = clamp(state.masterVolume, 0, 1);
+        masterGain.gain.cancelScheduledValues(now);
+        if (immediate) {
+          masterGain.gain.setValueAtTime(value, now);
+        } else {
+          masterGain.gain.linearRampToValueAtTime(value, now + 0.08);
+        }
+      }
+
+      async function toggleSound(id) {
+        if (isSoundActive(id)) {
+          stopSound(id, { remember: true });
+          return;
+        }
+        await startSound(id);
+      }
+
+      async function startSound(id) {
+        const sound = soundById.get(id);
+        if (!sound) return;
+
+        const audio = await ensureAudio();
+        const existing = runtime.get(id);
+        if (existing) {
+          cleanupEntry(existing);
+        }
+
+        const graph = await sound.create(audio);
+        const gain = audio.createGain();
+        gain.gain.setValueAtTime(0.0001, audio.currentTime);
+        if (graph.output) {
+          graph.output.connect(gain);
+          gain.connect(masterGain);
+        }
+
+        const entry = {
+          id,
+          graph,
+          gain,
+          stopping: false,
+          stopTimerId: 0
+        };
+
+        runtime.set(id, entry);
+        setEntryVolume(entry, 0.0001, true);
+
+        try {
+          await startGraph(graph, audio.currentTime);
+        } catch {
+          cleanupEntry(entry);
+          setStatus("再生できません");
+          renderSoundGrid();
+          renderMixer();
+          syncPlaybackUi();
+          return;
+        }
+
+        const targetVolume = clamp(state.volumes[id] ?? sound.defaultVolume, 0, 1);
+        fadeEntryVolume(entry, 0.0001, targetVolume, FADE_SECONDS);
+
+        activePreset = null;
+        updateLastMixFromActive();
+        persistState();
+        renderSoundGrid();
+        renderMixer();
+        renderExternalTemplates();
+        syncPlaybackUi();
+      }
+
+      function stopSound(id, options = {}) {
+        const { remember = true } = options;
+        const entry = runtime.get(id);
+        if (!entry || !ctx) return;
+
+        const activeBefore = getActiveIds();
+        entry.stopping = true;
+        clearTimeout(entry.stopTimerId);
+
+        const current = entry.graph.direct ? (entry.currentVolume ?? 0.0001) : entry.gain.gain.value;
+        fadeEntryVolume(entry, Math.max(current, 0.0001), 0.0001, FADE_SECONDS);
+
+        entry.stopTimerId = window.setTimeout(() => {
+          cleanupEntry(entry);
+          renderSoundGrid();
+          renderMixer();
+          renderExternalTemplates();
+          syncPlaybackUi();
+        }, (FADE_SECONDS * 1000) + 120);
+
+        if (remember) {
+          const remaining = activeBefore.filter((activeId) => activeId !== id);
+          if (remaining.length) {
+            state.lastMix = remaining;
+          } else if (activeBefore.length) {
+            state.lastMix = activeBefore;
+          }
+          persistState();
+        }
+
+        activePreset = null;
+        renderSoundGrid();
+        renderMixer();
+        renderExternalTemplates();
+        syncPlaybackUi();
+      }
+
+      function stopAll(options = {}) {
+        const { remember = true } = options;
+        const activeIds = getActiveIds();
+        if (remember && activeIds.length) {
+          state.lastMix = activeIds;
+          persistState();
+        }
+        activeIds.forEach((id) => stopSound(id, { remember: false }));
+        activePreset = null;
+        renderExternalTemplates();
+        syncPlaybackUi();
+      }
+
+      async function toggleGlobalPlayback() {
+        if (getActiveIds().length) {
+          stopAll({ remember: true });
+          setStatus("停止しました");
+          return;
+        }
+
+        const nextMix = normalizeMixIds(state.lastMix);
+        for (const id of nextMix) {
+          await startSound(id);
+        }
+        setStatus("再生中");
+      }
+
+      async function applyPreset(key) {
+        const preset = key === "custom" ? state.customPreset : PRESETS[key];
+        if (!preset || !preset.mix) return;
+
+        const mixIds = Object.keys(preset.mix).filter((id) => soundById.has(id));
+        if (!mixIds.length) return;
+
+        stopAll({ remember: false });
+
+        for (const id of mixIds) {
+          state.volumes[id] = clamp(preset.mix[id], 0, 1);
+        }
+        state.lastMix = mixIds;
+        activePreset = key;
+        persistState();
+
+        for (const id of mixIds) {
+          await startSound(id);
+        }
+
+        activePreset = key;
+        renderPresetGrid();
+        renderSoundGrid();
+        renderMixer();
+        renderExternalTemplates();
+        syncPlaybackUi();
+        setStatus(preset.label);
+      }
+
+      function saveCustomPreset() {
+        const activeIds = getActiveIds();
+        if (!activeIds.length) {
+          setSaveStatus("保存するミックスなし");
+          return;
+        }
+
+        state.customPreset = {
+          label: "Custom",
+          icon: "◇",
+          mix: Object.fromEntries(activeIds.map((id) => [id, state.volumes[id]]))
+        };
+        state.lastMix = activeIds;
+        persistState();
+        renderPresetGrid();
+        setSaveStatus("保存済み");
+      }
+
+      async function startGraph(graph, startTime) {
+        for (const source of graph.sources) {
+          try {
+            if (typeof source.start === "function") {
+              source.start(startTime);
+            }
+          } catch {
+            if (typeof source.start === "function") {
+              source.start();
+            }
+          }
+        }
+        if (typeof graph.start === "function") {
+          await graph.start();
+        }
+      }
+
+      function cleanupEntry(entry) {
+        clearTimeout(entry.stopTimerId);
+        cancelAnimationFrame(entry.fadeFrameId);
+        if (typeof entry.graph.stop === "function") {
+          entry.graph.stop();
+        }
+        for (const source of entry.graph.sources) {
+          try {
+            if (typeof source.stop === "function") {
+              source.stop();
+            }
+          } catch {
+            // Already stopped or never started.
+          }
+          safeDisconnect(source);
+        }
+        for (const node of entry.graph.nodes) {
+          safeDisconnect(node);
+        }
+        safeDisconnect(entry.gain);
+        runtime.delete(entry.id);
+      }
+
+      function fadeEntryVolume(entry, from, to, seconds) {
+        cancelAnimationFrame(entry.fadeFrameId);
+        if (entry.graph.direct) {
+          const startedAt = performance.now();
+          const duration = Math.max(1, seconds * 1000);
+          const step = (now) => {
+            const progress = clamp((now - startedAt) / duration, 0, 1);
+            const value = from + (to - from) * progress;
+            setEntryVolume(entry, value, true);
+            if (progress < 1) {
+              entry.fadeFrameId = requestAnimationFrame(step);
+            }
+          };
+          entry.fadeFrameId = requestAnimationFrame(step);
+          return;
+        }
+
+        if (!ctx) return;
+        const now = ctx.currentTime;
+        entry.gain.gain.cancelScheduledValues(now);
+        entry.gain.gain.setValueAtTime(Math.max(from, 0.0001), now);
+        entry.gain.gain.linearRampToValueAtTime(Math.max(to, 0.0001), now + seconds);
+        entry.currentVolume = to;
+      }
+
+      function setEntryVolume(entry, volume) {
+        entry.currentVolume = clamp(volume, 0, 1);
+        if (entry.graph.direct && typeof entry.graph.setVolume === "function") {
+          entry.graph.setVolume(entry.currentVolume * clamp(state.masterVolume, 0, 1));
+        } else if (entry.gain && ctx) {
+          entry.gain.gain.setValueAtTime(Math.max(entry.currentVolume, 0.0001), ctx.currentTime);
+        }
+      }
+
+      function safeDisconnect(node) {
+        try {
+          node.disconnect();
+        } catch {
+          // Some nodes may already be disconnected.
+        }
+      }
+
+      function setSoundVolume(id, volume) {
+        const sound = soundById.get(id);
+        if (!sound) return;
+
+        state.volumes[id] = clamp(volume, 0, 1);
+        const entry = runtime.get(id);
+        if (entry && !entry.stopping && ctx) {
+          fadeEntryVolume(entry, entry.currentVolume ?? state.volumes[id], state.volumes[id], 0.08);
+        }
+
+        activePreset = null;
+        syncSoundVolumeUi(id);
+        persistState();
+      }
+
+      function getActiveIds() {
+        return SOUNDS
+          .map((sound) => sound.id)
+          .filter((id) => {
+            const entry = runtime.get(id);
+            return entry && !entry.stopping;
+          });
+      }
+
+      function isSoundActive(id) {
+        const entry = runtime.get(id);
+        return Boolean(entry && !entry.stopping);
+      }
+
+      function updateLastMixFromActive() {
+        const activeIds = getActiveIds();
+        if (activeIds.length) {
+          state.lastMix = activeIds;
+        }
+      }
+
+      function normalizeMixIds(ids) {
+        const filtered = (Array.isArray(ids) ? ids : [])
+          .filter((id) => soundById.has(id));
+        return filtered.length ? [...new Set(filtered)] : ["rain", "pink"];
+      }
+
+      function renderSoundGrid() {
+        el.soundGrid.innerHTML = SOUNDS.map((sound) => {
+          const isActive = isSoundActive(sound.id);
+          const volume = Math.round((state.volumes[sound.id] ?? sound.defaultVolume) * 100);
+          return `
+            <button class="sound-card${isActive ? " is-active" : ""}" type="button" data-sound-id="${sound.id}" aria-pressed="${isActive}">
+              <span class="sound-icon" aria-hidden="true">${escapeHtml(sound.icon)}</span>
+              <span class="sound-copy">
+                <span class="sound-label">${escapeHtml(sound.label)}</span>
+                <span class="sound-meta">
+                  <span>${escapeHtml(sound.tone)}</span>
+                  <span data-card-level="${sound.id}">${volume}%</span>
+                </span>
+              </span>
+            </button>
+          `;
+        }).join("");
+      }
+
+      function renderMixer() {
+        const activeIds = getActiveIds();
+        if (!activeIds.length) {
+          el.mixerList.innerHTML = `<div class="empty-state">未選択</div>`;
+          syncPlaybackUi();
+          return;
+        }
+
+        el.mixerList.innerHTML = activeIds.map((id) => {
+          const sound = soundById.get(id);
+          const volume = Math.round((state.volumes[id] ?? sound.defaultVolume) * 100);
+          return `
+            <div class="mix-row" data-mix-row="${id}">
+              <div class="mix-name">
+                <span aria-hidden="true">${escapeHtml(sound.icon)}</span>
+                <span>${escapeHtml(sound.label)}</span>
+              </div>
+              <input class="range" type="range" min="0" max="100" value="${volume}" data-volume-id="${id}" aria-label="${escapeHtml(sound.label)}の音量">
+              <span class="percent" data-volume-output="${id}">${volume}%</span>
+              <button class="icon-button" type="button" data-stop-id="${id}" aria-label="${escapeHtml(sound.label)}を停止">×</button>
+            </div>
+          `;
+        }).join("");
+
+        activeIds.forEach(syncSoundVolumeUi);
+        syncPlaybackUi();
+      }
+
+      function renderPresetGrid() {
+        const items = Object.entries(PRESETS).map(([id, preset]) => ({ id, ...preset }));
+        if (state.customPreset) {
+          items.push({ id: "custom", ...state.customPreset });
+        }
+
+        el.presetGrid.innerHTML = items.map((preset) => `
+          <button class="preset-button${activePreset === preset.id ? " is-active" : ""}" type="button" data-preset-id="${preset.id}">
+            <span aria-hidden="true">${preset.icon}</span>
+            <strong>${preset.label}</strong>
+          </button>
+        `).join("");
+
+        setSaveStatus(state.customPreset ? "保存済み" : "未保存");
+      }
+
+      function renderExternalTemplates() {
+        el.externalTemplates.innerHTML = Object.entries(EXTERNAL_TEMPLATES).map(([id, template]) => `
+          <button class="template-button${isExternalTemplateActive(id) ? " is-active" : ""}" type="button" data-external-template="${id}">
+            <span aria-hidden="true">${escapeHtml(template.icon)}</span>
+            <span>${escapeHtml(template.buttonLabel || `${template.label} Radio`)}</span>
+          </button>
+        `).join("");
+      }
+
+      function isExternalTemplateActive(key) {
+        return SOUNDS.some((sound) => {
+          const entry = runtime.get(sound.id);
+          return sound.templateKey === key && entry && !entry.stopping;
+        });
+      }
+
+      function syncMasterUi() {
+        const percent = Math.round(clamp(state.masterVolume, 0, 1) * 100);
+        el.masterVolume.value = String(percent);
+        el.masterPercent.textContent = `${percent}%`;
+        setRangeFill(el.masterVolume, percent);
+        applyMasterGain();
+        runtime.forEach((entry) => {
+          if (entry.graph.direct && !entry.stopping) {
+            setEntryVolume(entry, state.volumes[entry.id] ?? 0.45, true);
+          }
+        });
+      }
+
+      function syncSoundVolumeUi(id) {
+        const sound = soundById.get(id);
+        if (!sound) return;
+        const percent = Math.round((state.volumes[id] ?? sound.defaultVolume) * 100);
+
+        document.querySelectorAll(`[data-volume-id="${id}"]`).forEach((input) => {
+          input.value = String(percent);
+          setRangeFill(input, percent);
+        });
+        document.querySelectorAll(`[data-volume-output="${id}"], [data-card-level="${id}"]`).forEach((node) => {
+          node.textContent = `${percent}%`;
+        });
+      }
+
+      function syncPlaybackUi() {
+        const activeIds = getActiveIds();
+        const activeCount = activeIds.length;
+        el.activeCount.textContent = `${activeCount} layer`;
+        el.playAllIcon.textContent = activeCount ? "■" : "▶";
+        el.playAllLabel.textContent = activeCount ? "停止" : "再生";
+        el.meterDot.classList.toggle("is-live", activeCount > 0);
+
+        if (!activeCount) {
+          el.nowPlaying.textContent = "未再生";
+          return;
+        }
+
+        el.nowPlaying.textContent = activeIds
+          .map((id) => soundById.get(id).label)
+          .join(" + ");
+      }
+
+      function setStatus(text) {
+        el.statusText.textContent = text;
+      }
+
+      function setSaveStatus(text) {
+        el.saveStatus.textContent = text;
+      }
+
+      function setExternalStatus(text) {
+        el.externalStatus.textContent = text;
+      }
+
+      function setRangeFill(input, percent) {
+        input.style.setProperty("--value", `${clamp(percent, 0, 100)}%`);
+      }
+
+      function setTimerMinutes(minutes) {
+        const safeMinutes = clamp(Math.round(minutes), 1, 180);
+        state.timerMinutes = safeMinutes;
+        timer.duration = safeMinutes * 60;
+        timer.remaining = timer.duration;
+        stopTimerInterval();
+        timer.running = false;
+        persistState();
+        syncTimerUi();
+      }
+
+      function toggleTimer() {
+        if (timer.running) {
+          pauseTimer();
+        } else {
+          startTimer();
+        }
+      }
+
+      function startTimer() {
+        if (timer.remaining <= 0) {
+          timer.remaining = timer.duration;
+        }
+        timer.running = true;
+        timer.endAt = Date.now() + timer.remaining * 1000;
+        stopTimerInterval();
+        timer.intervalId = window.setInterval(tickTimer, 250);
+        tickTimer();
+      }
+
+      function pauseTimer() {
+        if (timer.running) {
+          timer.remaining = Math.max(0, Math.ceil((timer.endAt - Date.now()) / 1000));
+        }
+        timer.running = false;
+        stopTimerInterval();
+        syncTimerUi();
+      }
+
+      function resetTimer() {
+        timer.running = false;
+        timer.remaining = timer.duration;
+        stopTimerInterval();
+        syncTimerUi();
+      }
+
+      function tickTimer() {
+        timer.remaining = Math.max(0, Math.ceil((timer.endAt - Date.now()) / 1000));
+        if (timer.remaining <= 0) {
+          timer.running = false;
+          stopTimerInterval();
+          stopAll({ remember: true });
+          setStatus("タイマー終了");
+        }
+        syncTimerUi();
+      }
+
+      function stopTimerInterval() {
+        clearInterval(timer.intervalId);
+        timer.intervalId = 0;
+      }
+
+      function syncTimerUi() {
+        const minutes = Math.floor(timer.remaining / 60);
+        const seconds = timer.remaining % 60;
+        el.timeValue.textContent = `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+        el.timerState.textContent = timer.running ? "進行中" : "待機中";
+        el.timerToggle.textContent = timer.running ? "一時停止" : "開始";
+        el.customMinutes.value = String(state.timerMinutes);
+
+        document.querySelectorAll("[data-minutes]").forEach((button) => {
+          button.classList.toggle("is-active", Number(button.dataset.minutes) === state.timerMinutes);
+        });
+      }
+
+      function resizeVisualizer() {
+        const rect = el.visualizer.getBoundingClientRect();
+        const scale = window.devicePixelRatio || 1;
+        const width = Math.max(1, Math.floor(rect.width * scale));
+        const height = Math.max(1, Math.floor(rect.height * scale));
+        if (el.visualizer.width !== width || el.visualizer.height !== height) {
+          el.visualizer.width = width;
+          el.visualizer.height = height;
+        }
+      }
+
+      function drawVisualizer() {
+        rafId = window.requestAnimationFrame(drawVisualizer);
+        if (!canvasContext) return;
+
+        const canvas = el.visualizer;
+        const dpr = window.devicePixelRatio || 1;
+        const width = canvas.width / dpr;
+        const height = canvas.height / dpr;
+        const now = performance.now() / 1000;
+        const activeIds = getActiveIds();
+
+        canvasContext.save();
+        canvasContext.setTransform(dpr, 0, 0, dpr, 0, 0);
+        canvasContext.clearRect(0, 0, width, height);
+
+        const bg = canvasContext.createLinearGradient(0, 0, width, height);
+        bg.addColorStop(0, "rgba(4, 10, 15, 0.42)");
+        bg.addColorStop(0.52, "rgba(15, 28, 34, 0.22)");
+        bg.addColorStop(1, "rgba(10, 9, 8, 0.18)");
+        canvasContext.fillStyle = bg;
+        canvasContext.fillRect(0, 0, width, height);
+
+        let bins = null;
+        if (analyser && activeIds.length && frequencyData) {
+          analyser.getByteFrequencyData(frequencyData);
+          bins = frequencyData;
+        }
+
+        drawWaveField(canvasContext, width, height, now, bins, activeIds.length);
+        drawBars(canvasContext, width, height, now, bins, activeIds.length);
+        canvasContext.restore();
+      }
+
+      function drawWaveField(context, width, height, now, bins, activeCount) {
+        const lineCount = 4;
+        for (let row = 0; row < lineCount; row += 1) {
+          const yBase = height * (0.32 + row * 0.12);
+          const amplitude = activeCount ? 9 + row * 4 : 5 + row * 2;
+          const hue = row % 2 === 0 ? "60, 224, 195" : "255, 180, 79";
+          context.beginPath();
+          for (let x = 0; x <= width; x += 10) {
+            const idx = bins ? Math.floor((x / width) * (bins.length - 1)) : 0;
+            const energy = bins ? bins[idx] / 255 : 0.18 + Math.sin(now * 0.7 + row) * 0.06;
+            const y = yBase
+              + Math.sin((x * 0.018) + now * (0.6 + row * 0.15) + row) * amplitude
+              + energy * (18 + row * 5);
+            if (x === 0) {
+              context.moveTo(x, y);
+            } else {
+              context.lineTo(x, y);
+            }
+          }
+          context.strokeStyle = `rgba(${hue}, ${activeCount ? 0.32 : 0.16})`;
+          context.lineWidth = 1.4;
+          context.stroke();
+        }
+      }
+
+      function drawBars(context, width, height, now, bins, activeCount) {
+        const count = Math.max(28, Math.floor(width / 18));
+        const gap = 6;
+        const barWidth = Math.max(4, (width - gap * (count - 1)) / count);
+        const baseY = height - 24;
+        for (let i = 0; i < count; i += 1) {
+          const x = i * (barWidth + gap);
+          const idx = bins ? Math.min(bins.length - 1, Math.floor((i / count) * bins.length)) : 0;
+          const idle = 0.16 + Math.sin(now * 1.6 + i * 0.45) * 0.06;
+          const energy = bins ? bins[idx] / 255 : idle;
+          const barHeight = 10 + energy * (activeCount ? 88 : 34);
+          const gradient = context.createLinearGradient(0, baseY - barHeight, 0, baseY);
+          gradient.addColorStop(0, activeCount ? "rgba(255, 180, 79, 0.72)" : "rgba(255, 180, 79, 0.22)");
+          gradient.addColorStop(1, activeCount ? "rgba(60, 224, 195, 0.58)" : "rgba(60, 224, 195, 0.2)");
+          context.fillStyle = gradient;
+          context.fillRect(x, baseY - barHeight, barWidth, barHeight);
+        }
+      }
+
+      function singleSourceGraph(source) {
+        return {
+          output: source,
+          sources: [source],
+          nodes: []
+        };
+      }
+
+      function createExternalMediaGraph(url, loop) {
+        const media = new Audio();
+        media.src = url;
+        media.loop = loop;
+        media.preload = loop ? "auto" : "none";
+        media.playsInline = true;
+        media.volume = 0;
+
+        return {
+          output: null,
+          sources: [],
+          nodes: [],
+          direct: true,
+          objectUrl: url.startsWith("blob:") ? url : "",
+          setVolume(value) {
+            media.volume = clamp(value, 0, 1);
+          },
+          async start() {
+            await media.play();
+          },
+          stop() {
+            media.pause();
+            media.removeAttribute("src");
+            media.load();
+          }
+        };
+      }
+
+      function createWhiteNoise(audio) {
+        const buffer = createNoiseBuffer(audio, 4, (sample) => sample);
+        return loopingSource(audio, buffer);
+      }
+
+      function createPinkNoise(audio) {
+        let b0 = 0;
+        let b1 = 0;
+        let b2 = 0;
+        let b3 = 0;
+        let b4 = 0;
+        let b5 = 0;
+        let b6 = 0;
+        const buffer = createNoiseBuffer(audio, 4, (white) => {
+          b0 = 0.99886 * b0 + white * 0.0555179;
+          b1 = 0.99332 * b1 + white * 0.0750759;
+          b2 = 0.969 * b2 + white * 0.153852;
+          b3 = 0.8665 * b3 + white * 0.3104856;
+          b4 = 0.55 * b4 + white * 0.5329522;
+          b5 = -0.7616 * b5 - white * 0.016898;
+          const pink = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) / 7;
+          b6 = white * 0.115926;
+          return pink;
+        });
+        return loopingSource(audio, buffer);
+      }
+
+      function createBrownNoise(audio) {
+        let lastOut = 0;
+        const buffer = createNoiseBuffer(audio, 4, (white) => {
+          lastOut = (lastOut + 0.02 * white) / 1.02;
+          return lastOut * 3.5;
+        });
+        return loopingSource(audio, buffer);
+      }
+
+      function createRainNoise(audio) {
+        const bed = createPinkNoise(audio);
+        const drops = loopingSource(audio, createSparseCrackleBuffer(audio, 4, {
+          density: 54,
+          decayMin: 0.002,
+          decayMax: 0.018,
+          gainMin: 0.08,
+          gainMax: 0.32
+        }));
+
+        const highpass = audio.createBiquadFilter();
+        highpass.type = "highpass";
+        highpass.frequency.value = 620;
+
+        const lowpass = audio.createBiquadFilter();
+        lowpass.type = "lowpass";
+        lowpass.frequency.value = 6200;
+
+        const dropFilter = audio.createBiquadFilter();
+        dropFilter.type = "bandpass";
+        dropFilter.frequency.value = 2600;
+        dropFilter.Q.value = 0.8;
+
+        const bedGain = audio.createGain();
+        bedGain.gain.value = 0.62;
+        const dropGain = audio.createGain();
+        dropGain.gain.value = 0.38;
+        const output = audio.createGain();
+        output.gain.value = 0.9;
+
+        bed.connect(highpass);
+        highpass.connect(lowpass);
+        lowpass.connect(bedGain);
+        bedGain.connect(output);
+        drops.connect(dropFilter);
+        dropFilter.connect(dropGain);
+        dropGain.connect(output);
+
+        return {
+          output,
+          sources: [bed, drops],
+          nodes: [highpass, lowpass, dropFilter, bedGain, dropGain, output]
+        };
+      }
+
+      function createWindNoise(audio) {
+        const wind = createBrownNoise(audio);
+        const filter = audio.createBiquadFilter();
+        filter.type = "bandpass";
+        filter.frequency.value = 520;
+        filter.Q.value = 0.56;
+
+        const shaper = audio.createWaveShaper();
+        shaper.curve = softSaturationCurve(220);
+        shaper.oversample = "2x";
+
+        const output = audio.createGain();
+        output.gain.value = 0.52;
+
+        const freqLfo = audio.createOscillator();
+        freqLfo.type = "sine";
+        freqLfo.frequency.value = 0.08;
+        const freqDepth = audio.createGain();
+        freqDepth.gain.value = 260;
+
+        const ampLfo = audio.createOscillator();
+        ampLfo.type = "sine";
+        ampLfo.frequency.value = 0.13;
+        const ampDepth = audio.createGain();
+        ampDepth.gain.value = 0.18;
+
+        wind.connect(filter);
+        filter.connect(shaper);
+        shaper.connect(output);
+        freqLfo.connect(freqDepth);
+        freqDepth.connect(filter.frequency);
+        ampLfo.connect(ampDepth);
+        ampDepth.connect(output.gain);
+
+        return {
+          output,
+          sources: [wind, freqLfo, ampLfo],
+          nodes: [filter, shaper, output, freqDepth, ampDepth]
+        };
+      }
+
+      function createWaveNoise(audio) {
+        const swell = createBrownNoise(audio);
+        const foam = createPinkNoise(audio);
+        const lowpass = audio.createBiquadFilter();
+        lowpass.type = "lowpass";
+        lowpass.frequency.value = 480;
+
+        const foamFilter = audio.createBiquadFilter();
+        foamFilter.type = "highpass";
+        foamFilter.frequency.value = 1400;
+
+        const swellGain = audio.createGain();
+        swellGain.gain.value = 0.34;
+        const foamGain = audio.createGain();
+        foamGain.gain.value = 0.14;
+        const output = audio.createGain();
+        output.gain.value = 0.95;
+
+        const lfo = audio.createOscillator();
+        lfo.type = "sine";
+        lfo.frequency.value = 0.085;
+        const swellDepth = audio.createGain();
+        swellDepth.gain.value = 0.28;
+        const foamDepth = audio.createGain();
+        foamDepth.gain.value = 0.08;
+
+        swell.connect(lowpass);
+        lowpass.connect(swellGain);
+        swellGain.connect(output);
+        foam.connect(foamFilter);
+        foamFilter.connect(foamGain);
+        foamGain.connect(output);
+        lfo.connect(swellDepth);
+        lfo.connect(foamDepth);
+        swellDepth.connect(swellGain.gain);
+        foamDepth.connect(foamGain.gain);
+
+        return {
+          output,
+          sources: [swell, foam, lfo],
+          nodes: [lowpass, foamFilter, swellGain, foamGain, output, swellDepth, foamDepth]
+        };
+      }
+
+      function createFireNoise(audio) {
+        const bed = createBrownNoise(audio);
+        const crackle = loopingSource(audio, createSparseCrackleBuffer(audio, 4, {
+          density: 12,
+          decayMin: 0.004,
+          decayMax: 0.038,
+          gainMin: 0.18,
+          gainMax: 0.86
+        }));
+
+        const bedFilter = audio.createBiquadFilter();
+        bedFilter.type = "bandpass";
+        bedFilter.frequency.value = 240;
+        bedFilter.Q.value = 0.7;
+
+        const crackleFilter = audio.createBiquadFilter();
+        crackleFilter.type = "bandpass";
+        crackleFilter.frequency.value = 3100;
+        crackleFilter.Q.value = 1.2;
+
+        const bedGain = audio.createGain();
+        bedGain.gain.value = 0.16;
+        const crackleGain = audio.createGain();
+        crackleGain.gain.value = 0.72;
+        const output = audio.createGain();
+        output.gain.value = 0.88;
+
+        bed.connect(bedFilter);
+        bedFilter.connect(bedGain);
+        bedGain.connect(output);
+        crackle.connect(crackleFilter);
+        crackleFilter.connect(crackleGain);
+        crackleGain.connect(output);
+
+        return {
+          output,
+          sources: [bed, crackle],
+          nodes: [bedFilter, crackleFilter, bedGain, crackleGain, output]
+        };
+      }
+
+      function createNoiseBuffer(audio, seconds, transform) {
+        const length = Math.floor(audio.sampleRate * seconds);
+        const buffer = audio.createBuffer(1, length, audio.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < length; i += 1) {
+          const white = Math.random() * 2 - 1;
+          data[i] = clamp(transform(white, i), -1, 1);
+        }
+        return buffer;
+      }
+
+      function createSparseCrackleBuffer(audio, seconds, options) {
+        const length = Math.floor(audio.sampleRate * seconds);
+        const buffer = audio.createBuffer(1, length, audio.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < length; i += 1) {
+          if (Math.random() < options.density / audio.sampleRate) {
+            const decay = Math.floor(audio.sampleRate * randomBetween(options.decayMin, options.decayMax));
+            const gain = randomBetween(options.gainMin, options.gainMax);
+            for (let j = 0; j < decay && i + j < length; j += 1) {
+              const envelope = Math.pow(1 - (j / decay), 2);
+              data[i + j] += (Math.random() * 2 - 1) * gain * envelope;
+            }
+          }
+          data[i] = clamp(data[i], -1, 1);
+        }
+        return buffer;
+      }
+
+      function loopingSource(audio, buffer) {
+        const source = audio.createBufferSource();
+        source.buffer = buffer;
+        source.loop = true;
+        return source;
+      }
+
+      function softSaturationCurve(amount) {
+        const samples = 44100;
+        const curve = new Float32Array(samples);
+        const deg = Math.PI / 180;
+        for (let i = 0; i < samples; i += 1) {
+          const x = (i * 2) / samples - 1;
+          curve[i] = ((3 + amount) * x * 20 * deg) / (Math.PI + amount * Math.abs(x));
+        }
+        return curve;
+      }
+
+      function clamp(value, min, max) {
+        return Math.min(max, Math.max(min, value));
+      }
+
+      function randomBetween(min, max) {
+        return min + Math.random() * (max - min);
+      }
+
+      function escapeHtml(value) {
+        return String(value)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+      }
+
+      window.addEventListener("beforeunload", () => {
+        cancelAnimationFrame(rafId);
+        stopTimerInterval();
+      });
+    })();
+  </script>
+</body>
+</html>
