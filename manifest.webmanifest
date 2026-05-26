@@ -1,0 +1,42 @@
+{
+  "name": "Focus Sound",
+  "short_name": "Focus Sound",
+  "description": "作業、睡眠、読書に使えるアンビエント集中ミキサー。",
+  "lang": "ja",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#070b10",
+  "theme_color": "#070b10",
+  "orientation": "any",
+  "categories": ["productivity", "music", "health"],
+  "icons": [
+    {
+      "src": "./icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "ねんね白音",
+      "short_name": "ねんね",
+      "description": "赤ちゃんの寝かしつけ向けのやわらかいホワイトノイズを準備します。",
+      "url": "./index.html#baby",
+      "icons": [
+        {
+          "src": "./icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ]
+}

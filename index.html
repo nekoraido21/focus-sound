@@ -3,6 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="作業、睡眠、読書に使えるアンビエント集中ミキサー。ホワイトノイズや自然音をブラウザで再生できます。">
+  <meta name="theme-color" content="#070b10">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Focus Sound">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icons/icon-192.png" sizes="192x192" type="image/png">
+  <link rel="apple-touch-icon" href="./icons/icon-192.png">
   <title>Focus Sound</title>
   <style>
     :root {
@@ -1102,6 +1110,15 @@
           create: (ctx) => singleSourceGraph(createWhiteNoise(ctx))
         },
         {
+          id: "babywhite",
+          label: "ねんね白音",
+          icon: "睡",
+          category: "noise",
+          tone: "Soft",
+          defaultVolume: 0.28,
+          create: createBabyWhiteNoise
+        },
+        {
           id: "pink",
           label: "ピンク",
           icon: "P",
@@ -1136,6 +1153,11 @@
           label: "雨デスク",
           icon: "▦",
           mix: { white: 0.24, rain: 0.54 }
+        },
+        baby: {
+          label: "ねんね",
+          icon: "睡",
+          mix: { babywhite: 0.34, brown: 0.1 }
         },
         warm: {
           label: "焚き火",
@@ -1201,6 +1223,8 @@
 
       function init() {
         canvasContext = el.visualizer.getContext("2d");
+        applyLaunchIntent();
+        registerServiceWorker();
         renderExternalTemplates();
         renderSoundGrid();
         renderMixer();
@@ -1355,6 +1379,25 @@
         } catch {
           setStatus("保存できません");
         }
+      }
+
+      function applyLaunchIntent() {
+        if (window.location.hash !== "#baby") return;
+        state.lastMix = ["babywhite"];
+        state.volumes.babywhite = 0.34;
+        activePreset = "baby";
+        setStatus("ねんね白音");
+      }
+
+      function registerServiceWorker() {
+        if (!("serviceWorker" in navigator)) return;
+        const isSecure = window.location.protocol === "https:" || window.location.hostname === "localhost";
+        if (!isSecure) return;
+        window.addEventListener("load", () => {
+          navigator.serviceWorker.register("./sw.js").catch(() => {
+            // PWA support is optional; audio should keep working without it.
+          });
+        });
       }
 
       function selectExternalTemplate(key) {
@@ -2319,6 +2362,32 @@
       function createWhiteNoise(audio) {
         const buffer = createNoiseBuffer(audio, 4, (sample) => sample);
         return loopingSource(audio, buffer);
+      }
+
+      function createBabyWhiteNoise(audio) {
+        const source = createWhiteNoise(audio);
+        const lowpass = audio.createBiquadFilter();
+        lowpass.type = "lowpass";
+        lowpass.frequency.value = 2200;
+        lowpass.Q.value = 0.35;
+
+        const highpass = audio.createBiquadFilter();
+        highpass.type = "highpass";
+        highpass.frequency.value = 90;
+        highpass.Q.value = 0.45;
+
+        const output = audio.createGain();
+        output.gain.value = 0.72;
+
+        source.connect(lowpass);
+        lowpass.connect(highpass);
+        highpass.connect(output);
+
+        return {
+          output,
+          sources: [source],
+          nodes: [lowpass, highpass, output]
+        };
       }
 
       function createPinkNoise(audio) {
