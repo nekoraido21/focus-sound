@@ -1039,7 +1039,7 @@
     (() => {
       "use strict";
 
-      const STORAGE_KEY = "focus-sound-state-v8";
+      const STORAGE_KEY = "focus-sound-state-v9";
       const FADE_SECONDS = 0.9;
       const SILENT_MEDIA_VOLUME = 0.005;
       const RADIO_BROWSER_SEARCH = "https://de1.api.radio-browser.info/json/stations/search";
@@ -1048,14 +1048,21 @@
       const AUDIO_DEBUG = new URLSearchParams(window.location.search).get("debug") === "audio"
         || window.location.hash.includes("debug");
 
+      function isIOS() {
+        return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+          (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+      }
+
       const EXTERNAL_TEMPLATES = {
         cafe: {
           label: "Bossa Cafe",
           icon: "喫",
           tone: "Bossa",
-          loop: false,
+          loop: true,
           buttonLabel: "Bossa Cafe",
-          outputLabel: "Bossa Cafe",
+          fixedUrl: "https://upload.wikimedia.org/wikipedia/commons/6/6e/609562_migfus20_background-music.ogg",
+          fixedLabel: "Bossa Cafe",
+          fixedTone: "Bossa",
           radioQueries: [
             { name: "bossa nova" },
             { tag: "bossa nova" },
@@ -1066,8 +1073,12 @@
         birds: {
           label: "鳥の声",
           icon: "鳥",
-          tone: "Loop",
+          tone: "Nature",
           loop: true,
+          buttonLabel: "鳥の声",
+          fixedUrl: "https://upload.wikimedia.org/wikipedia/commons/0/0e/Gentle_breeze_and_birds_singing.ogg",
+          fixedLabel: "鳥の声",
+          fixedTone: "Nature",
           radioQueries: [
             { name: "bird" },
             { name: "nature" },
@@ -1092,8 +1103,12 @@
         jazz: {
           label: "Jazz",
           icon: "JZ",
-          tone: "Radio",
-          loop: false,
+          tone: "Jazz",
+          loop: true,
+          buttonLabel: "Jazz",
+          fixedUrl: "https://upload.wikimedia.org/wikipedia/commons/0/03/Jazz_at_the_park.ogg",
+          fixedLabel: "Jazz",
+          fixedTone: "Jazz",
           radioQueries: [
             { name: "jazz", tag: "jazz" },
             { tag: "jazz" }
@@ -1205,6 +1220,7 @@
       };
 
       const soundById = new Map(SOUNDS.map((sound) => [sound.id, sound]));
+      const bufferCache = new Map();
       const runtime = new Map();
 
       let ctx = null;
@@ -1406,14 +1422,14 @@
 
       function restoreExternalSounds() {
         state.externalSounds = state.externalSounds
-          .filter((sound) => sound && sound.sourceType === "url" && isPlayableExternalUrl(sound.url))
+          .filter((sound) => sound && (sound.sourceType === "url" || sound.sourceType === "buffer") && isPlayableExternalUrl(sound.url))
           .map((sound) => ({
             id: sound.id || `ext-url-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
             label: sound.label || "外部音源",
             icon: sound.icon || "音",
             tone: sound.tone || (sound.loop ? "URL loop" : "Radio"),
             templateKey: sound.templateKey || inferExternalTemplateKey(sound),
-            sourceType: "url",
+            sourceType: sound.sourceType || "url",
             url: sound.url,
             loop: Boolean(sound.loop),
             defaultVolume: clamp(Number(sound.defaultVolume) || 0.45, 0, 1)
@@ -1474,7 +1490,7 @@
 
       async function addRadioSound(key) {
         const template = EXTERNAL_TEMPLATES[key] || EXTERNAL_TEMPLATES.jazz;
-        if (template.fixedUrl) {
+        if (template.fixedUrl && (isIOS() || !template.radioQueries)) {
           await addFixedExternalSound(key, template);
           return;
         }
@@ -1514,11 +1530,6 @@
       }
 
       async function addFixedExternalSound(key, template) {
-        if (!await isExternalAudioControllable(template.fixedUrl)) {
-          setExternalStatus(AUDIO_CONTROL_STATUS);
-          return;
-        }
-
         const duplicate = state.externalSounds.find((item) => item.url === template.fixedUrl);
         if (duplicate && soundById.has(duplicate.id)) {
           setExternalStatus(`${duplicate.label} 再生`);
@@ -1526,12 +1537,13 @@
           return;
         }
 
+        setExternalStatus("読み込み中");
         const sound = buildExternalSound({
-          sourceType: "url",
+          sourceType: "buffer",
           url: template.fixedUrl,
           label: template.fixedLabel || template.label,
           loop: true,
-          tone: template.fixedTone || "Ambience",
+          tone: template.fixedTone || "Ambient",
           templateKey: key,
           persist: true
         });
@@ -1746,7 +1758,9 @@
           sourceType: options.sourceType,
           url: options.url,
           loop: Boolean(options.loop),
-          create: (audio) => createExternalMediaGraph(audio, options.url, Boolean(options.loop))
+          create: options.sourceType === "buffer"
+            ? (audio) => createFetchAudioGraph(audio, options.url, Boolean(options.loop))
+            : (audio) => createExternalMediaGraph(audio, options.url, Boolean(options.loop))
         };
       }
 
@@ -1764,9 +1778,12 @@
         if (!sound || !sound.url) return;
         const existing = soundById.get(sound.id);
         if (existing) return;
+        const createFn = sound.sourceType === "buffer"
+          ? (audio) => createFetchAudioGraph(audio, sound.url, Boolean(sound.loop))
+          : (audio) => createExternalMediaGraph(audio, sound.url, Boolean(sound.loop));
         const hydrated = {
           ...sound,
-          create: (audio) => createExternalMediaGraph(audio, sound.url, Boolean(sound.loop))
+          create: createFn
         };
         SOUNDS.push(hydrated);
         soundById.set(hydrated.id, hydrated);
@@ -1782,7 +1799,7 @@
           icon: sound.icon,
           tone: sound.tone,
           templateKey: sound.templateKey || inferExternalTemplateKey(sound),
-          sourceType: "url",
+          sourceType: sound.sourceType || "url",
           url: sound.url,
           loop: sound.loop,
           defaultVolume: sound.defaultVolume
@@ -2449,6 +2466,39 @@
           output: source,
           sources: [source],
           nodes: []
+        };
+      }
+
+      async function createFetchAudioGraph(audio, url, loop) {
+        let buffer = bufferCache.get(url);
+        if (!buffer) {
+          const response = await fetch(url);
+          const arrayBuffer = await response.arrayBuffer();
+          buffer = await audio.decodeAudioData(arrayBuffer);
+          bufferCache.set(url, buffer);
+        }
+
+        const source = audio.createBufferSource();
+        source.buffer = buffer;
+        source.loop = loop;
+
+        const output = audio.createGain();
+        output.gain.value = 1;
+        source.connect(output);
+
+        return {
+          output,
+          sources: [source],
+          nodes: [output],
+          debugSnapshot() {
+            return { url, mode: "fetch-buffer", loop };
+          },
+          async start() {
+            try { source.start(0); } catch (_) {}
+          },
+          stop() {
+            try { source.stop(); } catch (_) {}
+          }
         };
       }
 
