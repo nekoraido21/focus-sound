@@ -1000,6 +1000,7 @@
       const STORAGE_KEY = "focus-sound-state-v8";
       const FADE_SECONDS = 0.9;
       const RADIO_BROWSER_SEARCH = "https://de1.api.radio-browser.info/json/stations/search";
+      const MIXED_CONTENT_STATUS = "HTTPS音源のみ対応";
 
       const EXTERNAL_TEMPLATES = {
         cafe: {
@@ -1324,7 +1325,7 @@
 
       function restoreExternalSounds() {
         state.externalSounds = state.externalSounds
-          .filter((sound) => sound && sound.sourceType === "url" && typeof sound.url === "string" && sound.url.trim())
+          .filter((sound) => sound && sound.sourceType === "url" && isPlayableExternalUrl(sound.url))
           .map((sound) => ({
             id: sound.id || `ext-url-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
             label: sound.label || "外部音源",
@@ -1457,6 +1458,11 @@
           return;
         }
 
+        if (!isPlayableExternalUrl(url)) {
+          setExternalStatus(MIXED_CONTENT_STATUS);
+          return;
+        }
+
         const duplicate = state.externalSounds.find((item) => item.url === url);
         if (duplicate && soundById.has(duplicate.id)) {
           setExternalStatus(`${duplicate.label} 再生`);
@@ -1530,7 +1536,7 @@
             if (seen.has(key)) return false;
             seen.add(key);
             return item.lastcheckok === 1
-              && /^https?:\/\//.test(url)
+              && isPlayableExternalUrl(url)
               && !item.hls
               && ["mp3", "aac", "ogg"].some((name) => codec.includes(name) || url.toLowerCase().includes(name));
           });
@@ -1585,6 +1591,16 @@
           loop: Boolean(options.loop),
           create: () => createExternalMediaGraph(options.url, Boolean(options.loop))
         };
+      }
+
+      function isPlayableExternalUrl(value) {
+        try {
+          const url = new URL(String(value || "").trim(), window.location.href);
+          if (url.protocol === "https:" || url.protocol === "blob:") return true;
+          return false;
+        } catch {
+          return false;
+        }
       }
 
       function registerExternalSound(sound) {
