@@ -1093,7 +1093,12 @@
           buttonLabel: "人混み Ambience",
           fixedUrl: "https://upload.wikimedia.org/wikipedia/commons/b/b5/Restaurant_ambience.ogg",
           fixedLabel: "人混み",
-          fixedTone: "Ambience"
+          fixedTone: "Ambience",
+          radioQueries: [
+            { name: "talk" },
+            { tag: "talk" },
+            { tag: "news" }
+          ]
         },
         jazz: {
           label: "Jazz",
@@ -1485,14 +1490,21 @@
 
       async function addRadioSound(key) {
         const template = EXTERNAL_TEMPLATES[key] || EXTERNAL_TEMPLATES.jazz;
-        if (template.fixedUrl && (isIOS() || !template.radioQueries)) {
+
+        // iOS: always use fixed file for full volume control
+        if (isIOS() && template.fixedUrl) {
           await addFixedExternalSound(key, template);
           return;
         }
 
+        // Non-iOS: radio search first, fallback to fixed file if no candidates
         const station = await findRadioStation(key);
         if (!station) {
-          setExternalStatus("候補なし");
+          if (template.fixedUrl) {
+            await addFixedExternalSound(key, template);
+          } else {
+            setExternalStatus("候補なし");
+          }
           return;
         }
 
