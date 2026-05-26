@@ -1045,11 +1045,6 @@
       const AUDIO_DEBUG = new URLSearchParams(window.location.search).get("debug") === "audio"
         || window.location.hash.includes("debug");
 
-      function isIOS() {
-        return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-          (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-      }
-
       const EXTERNAL_TEMPLATES = {
         cafe: {
           label: "Bossa Cafe",
@@ -1284,7 +1279,9 @@
         window.addEventListener("resize", resizeVisualizer);
 
         document.addEventListener("pointerdown", () => {
-          if (ctx && ctx.state === "suspended") {
+          if (!ctx) {
+            void ensureAudio();
+          } else if (ctx.state === "suspended") {
             void ctx.resume();
           }
         }, { passive: true });
@@ -1455,6 +1452,7 @@
 
       async function addExternalRadioTemplate(key) {
         selectExternalTemplate(key);
+        void ensureAudio();
         await addRadioSound(key);
       }
 
@@ -1534,6 +1532,7 @@
       }
 
       async function addExternalUrlSound() {
+        void ensureAudio();
         let url = el.externalUrl.value.trim();
         let label = el.externalName.value.trim();
         let loop = el.externalLoop.checked;
@@ -2461,39 +2460,6 @@
             muted: media.muted
           });
         });
-
-        if (isIOS()) {
-          debugAudio("external graph", { url, mode: "direct-volume", crossOrigin: media.crossOrigin || "none" });
-          return {
-            output: null,
-            sources: [],
-            nodes: [],
-            direct: true,
-            setVolume(vol) {
-              media.volume = Math.min(1, Math.max(0, vol));
-            },
-            debugSnapshot() {
-              return {
-                url,
-                mode: "direct-volume",
-                paused: media.paused,
-                muted: media.muted,
-                mediaVolume: media.volume,
-                readyState: media.readyState,
-                networkState: media.networkState
-              };
-            },
-            async start() {
-              debugAudio("media play", { url });
-              await media.play();
-            },
-            stop() {
-              media.pause();
-              media.removeAttribute("src");
-              media.load();
-            }
-          };
-        }
 
         const source = audio.createMediaElementSource(media);
         const output = audio.createGain();
