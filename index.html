@@ -831,7 +831,10 @@
         width: 100%;
       }
 
-      .sound-grid,
+      .sound-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
       .right-stack {
         grid-template-columns: 1fr;
       }
@@ -2474,15 +2477,14 @@
           });
         });
 
-        const source = audio.createMediaElementSource(media);
         const output = audio.createGain();
+        const graphSources = [];
         output.gain.value = 1;
-        source.connect(output);
         debugAudio("external graph", { url, mode: "media-element-source", crossOrigin: media.crossOrigin || "none" });
 
         return {
           output,
-          sources: [source],
+          sources: graphSources,
           nodes: [output],
           media,
           objectUrl: url.startsWith("blob:") ? url : "",
@@ -2502,6 +2504,20 @@
           async start() {
             debugAudio("media play", { url });
             await media.play();
+            let source;
+            if (typeof media.captureStream === "function") {
+              try {
+                const stream = media.captureStream();
+                if (stream.getAudioTracks().length > 0) {
+                  source = audio.createMediaStreamSource(stream);
+                }
+              } catch (_) {}
+            }
+            if (!source) {
+              source = audio.createMediaElementSource(media);
+            }
+            source.connect(output);
+            graphSources.push(source);
           },
           stop() {
             media.pause();
