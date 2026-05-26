@@ -1007,6 +1007,7 @@
 
       const STORAGE_KEY = "focus-sound-state-v8";
       const FADE_SECONDS = 0.9;
+      const SILENT_MEDIA_VOLUME = 0.005;
       const RADIO_BROWSER_SEARCH = "https://de1.api.radio-browser.info/json/stations/search";
       const MIXED_CONTENT_STATUS = "HTTPS音源のみ対応";
 
@@ -2333,10 +2334,14 @@
 
       function createExternalMediaGraph(url, loop) {
         const media = new Audio();
+        let started = false;
+        let targetVolume = 0;
+
         media.src = url;
         media.loop = loop;
         media.preload = loop ? "auto" : "none";
         media.playsInline = true;
+        media.muted = true;
         media.volume = 0;
 
         return {
@@ -2346,12 +2351,31 @@
           direct: true,
           objectUrl: url.startsWith("blob:") ? url : "",
           setVolume(value) {
-            media.volume = clamp(value, 0, 1);
+            targetVolume = clamp(value, 0, 1);
+            media.volume = targetVolume;
+
+            if (targetVolume <= SILENT_MEDIA_VOLUME) {
+              media.muted = true;
+              if (started && !media.paused) {
+                media.pause();
+              }
+              return;
+            }
+
+            media.muted = false;
+            if (started && media.paused) {
+              media.play().catch(() => {
+                media.muted = true;
+              });
+            }
           },
           async start() {
+            started = true;
+            media.muted = targetVolume <= SILENT_MEDIA_VOLUME;
             await media.play();
           },
           stop() {
+            started = false;
             media.pause();
             media.removeAttribute("src");
             media.load();
