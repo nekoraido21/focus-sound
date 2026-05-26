@@ -1060,7 +1060,7 @@
           tone: "Bossa",
           loop: true,
           buttonLabel: "Bossa Cafe",
-          fixedUrl: "https://upload.wikimedia.org/wikipedia/commons/6/6e/609562_migfus20_background-music.ogg",
+          fixedUrl: "https://upload.wikimedia.org/wikipedia/commons/transcoded/6/6e/609562_migfus20_background-music.ogg/609562_migfus20_background-music.ogg.mp3",
           fixedLabel: "Bossa Cafe",
           fixedTone: "Bossa",
           radioQueries: [
@@ -1076,7 +1076,7 @@
           tone: "Nature",
           loop: true,
           buttonLabel: "鳥の声",
-          fixedUrl: "https://upload.wikimedia.org/wikipedia/commons/0/0e/Gentle_breeze_and_birds_singing.ogg",
+          fixedUrl: "https://upload.wikimedia.org/wikipedia/commons/transcoded/0/0e/Gentle_breeze_and_birds_singing.ogg/Gentle_breeze_and_birds_singing.ogg.mp3",
           fixedLabel: "鳥の声",
           fixedTone: "Nature",
           radioQueries: [
@@ -1091,7 +1091,7 @@
           tone: "Ambience",
           loop: true,
           buttonLabel: "人混み Ambience",
-          fixedUrl: "https://upload.wikimedia.org/wikipedia/commons/b/b5/Restaurant_ambience.ogg",
+          fixedUrl: "https://upload.wikimedia.org/wikipedia/commons/transcoded/b/b5/Restaurant_ambience.ogg/Restaurant_ambience.ogg.mp3",
           fixedLabel: "人混み",
           fixedTone: "Ambience",
           radioQueries: [
@@ -1106,7 +1106,7 @@
           tone: "Jazz",
           loop: true,
           buttonLabel: "Jazz",
-          fixedUrl: "https://upload.wikimedia.org/wikipedia/commons/0/03/Jazz_at_the_park.ogg",
+          fixedUrl: "https://upload.wikimedia.org/wikipedia/commons/transcoded/0/03/Jazz_at_the_park.ogg/Jazz_at_the_park.ogg.mp3",
           fixedLabel: "Jazz",
           fixedTone: "Jazz",
           radioQueries: [
@@ -1497,14 +1497,10 @@
           return;
         }
 
-        // Non-iOS: radio search first, fallback to fixed file if no candidates
+        // Non-iOS: radio only
         const station = await findRadioStation(key);
         if (!station) {
-          if (template.fixedUrl) {
-            await addFixedExternalSound(key, template);
-          } else {
-            setExternalStatus("候補なし");
-          }
+          setExternalStatus("候補なし");
           return;
         }
 

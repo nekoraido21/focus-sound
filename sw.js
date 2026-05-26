@@ -1,4 +1,4 @@
-const CACHE_NAME = "focus-sound-pwa-v1";
+const CACHE_NAME = "focus-sound-pwa-v2";
 const APP_SHELL = [
   "./",
   "./index.html",
