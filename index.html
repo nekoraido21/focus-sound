@@ -1633,7 +1633,7 @@
           sourceType: options.sourceType,
           url: options.url,
           loop: Boolean(options.loop),
-          create: () => createExternalMediaGraph(options.url, Boolean(options.loop))
+          create: (audio) => createExternalMediaGraph(audio, options.url, Boolean(options.loop))
         };
       }
 
@@ -1653,7 +1653,7 @@
         if (existing) return;
         const hydrated = {
           ...sound,
-          create: () => createExternalMediaGraph(sound.url, Boolean(sound.loop))
+          create: (audio) => createExternalMediaGraph(audio, sound.url, Boolean(sound.loop))
         };
         SOUNDS.push(hydrated);
         soundById.set(hydrated.id, hydrated);
@@ -1956,9 +1956,11 @@
 
         if (!ctx) return;
         const now = ctx.currentTime;
+        const fromValue = from <= SILENT_MEDIA_VOLUME ? 0 : Math.max(from, 0.0001);
+        const toValue = to <= SILENT_MEDIA_VOLUME ? 0 : Math.max(to, 0.0001);
         entry.gain.gain.cancelScheduledValues(now);
-        entry.gain.gain.setValueAtTime(Math.max(from, 0.0001), now);
-        entry.gain.gain.linearRampToValueAtTime(Math.max(to, 0.0001), now + seconds);
+        entry.gain.gain.setValueAtTime(fromValue, now);
+        entry.gain.gain.linearRampToValueAtTime(toValue, now + seconds);
         entry.currentVolume = to;
       }
 
@@ -1967,7 +1969,8 @@
         if (entry.graph.direct && typeof entry.graph.setVolume === "function") {
           entry.graph.setVolume(entry.currentVolume * clamp(state.masterVolume, 0, 1));
         } else if (entry.gain && ctx) {
-          entry.gain.gain.setValueAtTime(Math.max(entry.currentVolume, 0.0001), ctx.currentTime);
+          const value = entry.currentVolume <= SILENT_MEDIA_VOLUME ? 0 : Math.max(entry.currentVolume, 0.0001);
+          entry.gain.gain.setValueAtTime(value, ctx.currentTime);
         }
       }
 
@@ -2332,50 +2335,32 @@
         };
       }
 
-      function createExternalMediaGraph(url, loop) {
+      function createExternalMediaGraph(audio, url, loop) {
         const media = new Audio();
-        let started = false;
-        let targetVolume = 0;
 
+        if (!url.startsWith("blob:")) {
+          media.crossOrigin = "anonymous";
+        }
         media.src = url;
         media.loop = loop;
         media.preload = loop ? "auto" : "none";
         media.playsInline = true;
-        media.muted = true;
-        media.volume = 0;
+        media.volume = 1;
+
+        const source = audio.createMediaElementSource(media);
+        const output = audio.createGain();
+        output.gain.value = 1;
+        source.connect(output);
 
         return {
-          output: null,
-          sources: [],
-          nodes: [],
-          direct: true,
+          output,
+          sources: [source],
+          nodes: [output],
           objectUrl: url.startsWith("blob:") ? url : "",
-          setVolume(value) {
-            targetVolume = clamp(value, 0, 1);
-            media.volume = targetVolume;
-
-            if (targetVolume <= SILENT_MEDIA_VOLUME) {
-              media.muted = true;
-              if (started && !media.paused) {
-                media.pause();
-              }
-              return;
-            }
-
-            media.muted = false;
-            if (started && media.paused) {
-              media.play().catch(() => {
-                media.muted = true;
-              });
-            }
-          },
           async start() {
-            started = true;
-            media.muted = targetVolume <= SILENT_MEDIA_VOLUME;
             await media.play();
           },
           stop() {
-            started = false;
             media.pause();
             media.removeAttribute("src");
             media.load();
